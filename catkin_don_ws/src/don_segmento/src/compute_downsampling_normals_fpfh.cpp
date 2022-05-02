@@ -65,6 +65,8 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   // ***********************************
   // Test the pcl::PCLPointCloud2 method
   // Randomly sample sample points from cloud
+  TicToc ds_tt;
+  ds_tt.tic();
 
   RandomSample<pcl::PCLPointCloud2> random_sample;
   random_sample.setInputCloud(input);
@@ -76,7 +78,18 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
 
   random_sample.filter(output);
   fromPCLPointCloud2(output, *xyz);
-  // ********************************
+
+  print_highlight("Computed random down sampling in ");
+  print_value("%g", ds_tt.toc());
+  print_info(" ms for ");
+  print_value("%d", xyz->size());
+  print_info(" points.\n");
+  // *************************************
+  // *************************************
+
+  // * ***************** *
+  // * normal estimation *
+  // * ***************** *
 
   TicToc tt;
   tt.tic();
@@ -109,23 +122,15 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   print_value("%d", normals.width * normals.height);
   print_info(" points.\n");
 
-  // // uniform down sampling for a constant (and smaller) number of points
-  // PointCloud<PointXYZ>::Ptr xyz_out (new PointCloud<PointXYZ>);
-  // pcl::UniformSampling<PointXYZ> uniform_sampling;
-  // uniform_sampling.setInputCloud (xyz);
-  // uniform_sampling.setRadiusSearch (0.01);
-  // uniform_sampling.filter (*xyz_out);
-  // pcl::PCLPointCloud2 xyz_out2;
-  // toPCLPointCloud2(*xyz_out, xyz_out2);
-  // copyPointCloud(xyz_out2,output);
-  // std::cout << "Model total points: " << xyz->size () << "; Selected Keypoints: " << xyz_out->size () << std::endl;
-
+  // *****************************************
+  // *****************************************
 
   pcl::PCLPointCloud2::Ptr cloudNormal (new pcl::PCLPointCloud2());
   pcl::PCLPointCloud2 output_normals;
   toPCLPointCloud2 (normals, output_normals);
   concatenateFields (output, output_normals, *cloudNormal);
 
+  // ## we chose not to do this ##
   // **********************************
   // * sample after normal estimation *
   // **********************************
@@ -145,28 +150,29 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   
   // random_sample.filter(output);
   // ***********************************
+  // ***********************************
 
-  // Create the FPFH estimation class, and pass the input dataset+normals to it
-  pcl::FPFHEstimation<pcl::PointXYZRGBL, pcl::Normal, pcl::FPFHSignature33> fpfh;
-  fpfh.setInputCloud (xyz);
-  fpfh.setInputNormals (normals);
-  // alternatively, if cloud is of tpe PointNormal, do fpfh.setInputNormals (cloud);
+  // // Create the FPFH estimation class, and pass the input dataset+normals to it
+  // pcl::FPFHEstimation<pcl::PointXYZRGBL, pcl::Normal, pcl::FPFHSignature33> fpfh;
+  // fpfh.setInputCloud (xyz);
+  // fpfh.setInputNormals (normals);
+  // // alternatively, if cloud is of tpe PointNormal, do fpfh.setInputNormals (cloud);
 
-  // Create an empty kdtree representation, and pass it to the FPFH estimation object.
-  // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
-  pcl::search::KdTree<PointXYZ>::Ptr tree (new pcl::search::KdTree<PointXYZ>);
+  // // Create an empty kdtree representation, and pass it to the FPFH estimation object.
+  // // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
+  // pcl::search::KdTree<PointXYZ>::Ptr tree (new pcl::search::KdTree<PointXYZ>);
 
-  fpfh.setSearchMethod (tree);
+  // fpfh.setSearchMethod (tree);
 
-  // Output datasets
-  pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs (new pcl::PointCloud<pcl::FPFHSignature33> ());
+  // // Output datasets
+  // pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs (new pcl::PointCloud<pcl::FPFHSignature33> ());
 
-  // Use all neighbors in a sphere of radius 5cm
-  // IMPORTANT: the radius used here has to be larger than the radius used to estimate the surface normals!!!
-  fpfh.setRadiusSearch (0.05);
+  // // Use all neighbors in a sphere of radius 5cm
+  // // IMPORTANT: the radius used here has to be larger than the radius used to estimate the surface normals!!!
+  // fpfh.setRadiusSearch (0.05);
 
-  // Compute the features
-  fpfh.compute (*fpfhs);
+  // // Compute the features
+  // fpfh.compute (*fpfhs);
 
   // fpfhs->size () should have the same size as the input cloud->size ()*
   
