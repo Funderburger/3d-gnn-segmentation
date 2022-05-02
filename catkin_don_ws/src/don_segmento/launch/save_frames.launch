@@ -1,0 +1,10 @@
+<launch>
+ <node pkg="ddd_plane_extr" type="save_frames" name="save_frames" output="screen" >
+<remap from="point_cloud_in" to="/pico_pcloud"/>
+<remap from="ir_input" to="/pico_img_rect"/>
+<!-- <remap from="depth_input" to="/pico_zense/depth/image_raw"/> -->
+<remap from="depth_input" to="/pico_zense/depth/image_raw"/> 
+<!-- <remap from="rgb_input" to="/pico_zense/colour/image_raw"/> -->
+</node>
+
+</launch>
