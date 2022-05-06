@@ -7,6 +7,7 @@
 #include <pcl/console/time.h>
 #include <pcl/filters/uniform_sampling.h>
 #include <pcl/filters/random_sample.h>
+#include <pcl/filters/extract_indices.h>
 #include <pcl/features/fpfh.h>
 
 #include <boost/filesystem.hpp>                 // for path, exists, ...
@@ -22,6 +23,8 @@ using namespace pcl::console;
 int default_k = 0;
 double default_radius = 0.0;
 int default_samples = 0;
+double default_fpfh = 0;
+
 
 void printHelp(int, char **argv)
 {
@@ -35,6 +38,9 @@ void printHelp(int, char **argv)
   print_info(")\n");
   print_info("                     -samples X      = down sample point clouds to a fix number of points (random sample) (default: ");
   print_value("%f", default_samples);
+  print_info(")\n");
+  print_info("                     -fpfh_param X      = depending on the search method thise represent either the number of neighbors for knn or radius for radius search (default: ");
+  print_value("%f", default_fpfh);
   print_info(")\n");
   print_info(" For organized datasets, an IntegralImageNormalEstimation approach will be used, with the RADIUS given value as SMOOTHING SIZE.\n");
   print_info("\nOptional arguments are:\n");
@@ -52,7 +58,7 @@ bool loadCloud(const std::string &filename, pcl::PCLPointCloud2 &cloud,
 }
 
 void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output,
-             int k, double radius, int samples)
+             int k, double radius, int samples, double fpfh_param)
 {
   // Convert data to PointCloud<T>
   // PointCloud<PointXYZ>::Ptr xyz (new PointCloud<PointXYZ>);
@@ -152,32 +158,93 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   // ***********************************
   // ***********************************
 
-  // // Create the FPFH estimation class, and pass the input dataset+normals to it
-  // pcl::FPFHEstimation<pcl::PointXYZRGBL, pcl::Normal, pcl::FPFHSignature33> fpfh;
-  // fpfh.setInputCloud (xyz);
-  // fpfh.setInputNormals (normals);
-  // // alternatively, if cloud is of tpe PointNormal, do fpfh.setInputNormals (cloud);
+  // *********************
+  // * remove nan normals 
+  // *********************
+  pcl::PointCloud<Normal>::Ptr normals_ptr(new pcl::PointCloud<Normal>);
+  normals_ptr->points = normals.points;
+  normals_ptr->header = normals.header;
+  // pcl::PCLPointCloud::Ptr outputCloud (new pcl::PCLPointCloud);
+  // std::vector<double> inds;
+  pcl::Indices inds;
+  PointCloud<Normal>::Ptr nonNanNormals (new pcl::PointCloud<Normal>);
+  pcl::removeNaNNormalsFromPointCloud(*normals_ptr,*nonNanNormals,inds);
 
-  // // Create an empty kdtree representation, and pass it to the FPFH estimation object.
-  // // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
-  // pcl::search::KdTree<PointXYZ>::Ptr tree (new pcl::search::KdTree<PointXYZ>);
+  print_highlight("After NaN clean: ");
+  print_value("%d", nonNanNormals->size());
+  print_info(" points.\n");
 
-  // fpfh.setSearchMethod (tree);
+  // filter the output cloud
 
-  // // Output datasets
-  // pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs (new pcl::PointCloud<pcl::FPFHSignature33> ());
+  PCLPointCloud2::Ptr output_ptr (new PCLPointCloud2);
+  output_ptr->data = output.data;
+  pcl::PointIndices::Ptr inds_ptr (new pcl::PointIndices);
+  inds_ptr->indices = inds;
 
-  // // Use all neighbors in a sphere of radius 5cm
-  // // IMPORTANT: the radius used here has to be larger than the radius used to estimate the surface normals!!!
-  // fpfh.setRadiusSearch (0.05);
+  // pcl::FilterIndices<pcl::PCLPointCloud2> nanFilter;// (new FilterIndices<pcl::PCLPointCloud2>());
+  pcl::ExtractIndices<pcl::PointXYZRGBL> extractNonNans;
+  PointCloud<PointXYZRGBL>::Ptr xyzCleared(new PointCloud<PointXYZRGBL>);
 
-  // // Compute the features
-  // fpfh.compute (*fpfhs);
+  extractNonNans.setInputCloud(xyz);
+  extractNonNans.setIndices(inds_ptr);
+  extractNonNans.filter(*xyzCleared);
+  
+
+  // * ************ *
+  // * compute FPFH *
+  // * ************ *
+
+  // PointCloud<PointXYZRGBL>::Ptr fpfhReadyCloud(new PointCloud<PointXYZRGBL>);
+  // fromPCLPointCloud2(clearCloud, *fpfhReadyCloud);
+
+  // Create the FPFH estimation class, and pass the input dataset+normals to it
+
+  pcl::FPFHEstimation<pcl::PointXYZRGBL, pcl::Normal, pcl::FPFHSignature33> fpfh;
+  fpfh.setInputCloud (xyzCleared);
+  fpfh.setInputNormals (nonNanNormals);
+  // alternatively, if cloud is of type PointNormal, do fpfh.setInputNormals (cloud);
+
+  // Create an empty kdtree representation, and pass it to the FPFH estimation object.
+  // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
+  pcl::search::KdTree<pcl::PointXYZRGBL>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGBL>);
+
+  fpfh.setSearchMethod (tree);
+
+  // Output datasets
+  pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs (new pcl::PointCloud<pcl::FPFHSignature33> ());
+
+  // Use all neighbors in a sphere of radius 5cm
+  // IMPORTANT: the radius used here has to be larger than the radius used to estimate the surface normals!!!
+  fpfh.setRadiusSearch (fpfh_param);
+  // fpfh.setKSearch (fpfh_param);
+
+  // Compute the features
+  fpfh.compute (*fpfhs);
 
   // fpfhs->size () should have the same size as the input cloud->size ()*
+  print_highlight("After fpfh point cloud has ");
+  print_value("%d", fpfhs->size());
+  print_info(" points.\n");
+  // ***************************************
+  // ***************************************
+
+
+
+  // * ************************** *
+  // * concatenate all the points *
+  // * ************************** *
+  pcl::PCLPointCloud2 normalsPCL2;
+  pcl::PCLPointCloud2 clearCloud;
+  pcl::PCLPointCloud2 fpfhsCloud;
+  pcl::PCLPointCloud2 interOutput;
+
+  toPCLPointCloud2 (*nonNanNormals, normalsPCL2);
+  toPCLPointCloud2 (*xyzCleared, clearCloud);
+  toPCLPointCloud2 (*fpfhs, fpfhsCloud);
+  concatenateFields (clearCloud, normalsPCL2, interOutput);
+  concatenateFields (interOutput, fpfhsCloud, output);
   
-  copyPointCloud(*cloudNormal, output);
-  // Convert data back
+  // copyPointCloud(*cloudNormal, output);
 
 }
 
@@ -188,7 +255,7 @@ void saveCloud(const std::string &filename, const pcl::PCLPointCloud2 &output,
   w.writeBinaryCompressed(filename, output, translation, orientation);
 }
 
-int batchProcess(const std::vector<std::string> &pcd_files, std::string &output_dir, int k, double radius, int samples)
+int batchProcess(const std::vector<std::string> &pcd_files, std::string &output_dir, int k, double radius, int samples, double fpfh_param)
 {
 #pragma omp parallel for default(none) \
     shared(k, output_dir, pcd_files, radius)
@@ -203,7 +270,7 @@ int batchProcess(const std::vector<std::string> &pcd_files, std::string &output_
 
     // Perform the feature estimation
     pcl::PCLPointCloud2 output;
-    compute(cloud, output, k, radius, samples);
+    compute(cloud, output, k, radius, samples, fpfh_param);
 
     // Prepare output file name
     std::string filename = boost::filesystem::path(pcd_files[i]).filename().string();
@@ -232,9 +299,11 @@ int main(int argc, char **argv)
   int k = default_k;
   double radius = default_radius;
   int samples = default_samples;
+  double fpfh_param = default_fpfh;
   parse_argument(argc, argv, "-k", k);
   parse_argument(argc, argv, "-radius", radius);
   parse_argument(argc, argv, "-samples", samples);
+  parse_argument(argc, argv, "-fpfh_param", fpfh_param);
   std::string input_dir, output_dir;
   if (parse_argument(argc, argv, "-input_dir", input_dir) != -1)
   {
@@ -311,7 +380,7 @@ int main(int argc, char **argv)
     // *cloud = *cloud + *cloudL;
     // Perform the feature estimation
     pcl::PCLPointCloud2 output;
-    compute(completeCloud, output, k, radius, samples);
+    compute(completeCloud, output, k, radius, samples, fpfh_param);
 
     // Save into the second file
     saveCloud(argv[p_file_indices[1]], output, translation, rotation);
@@ -331,7 +400,7 @@ int main(int argc, char **argv)
           PCL_INFO("[Batch processing mode] Added %s for processing.\n", itr->path().string().c_str());
         }
       }
-      batchProcess(pcd_files, output_dir, k, radius, samples);
+      batchProcess(pcd_files, output_dir, k, radius, samples, fpfh_param);
     }
     else
     {
