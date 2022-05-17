@@ -9,6 +9,7 @@
 #include <pcl/filters/random_sample.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/features/fpfh.h>
+#include <pcl/features/rsd.h>
 
 #include <boost/filesystem.hpp>                 // for path, exists, ...
 #include <boost/algorithm/string/case_conv.hpp> // for to_upper_copy
@@ -102,6 +103,13 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
 
   PointCloud<Normal> normals;
 
+  // NormalEstimation<PointXYZRGBL, Normal> ne;
+  // ne.setInputCloud(xyz);
+  // ne.setSearchMethod(search::KdTree<PointXYZRGBL>::Ptr(new search::KdTree<PointXYZRGBL>));
+  // ne.setKSearch(k);
+  // // ne.setRadiusSearch(radius);
+  // ne.compute(normals);
+
   // Try our luck with organized integral image based normal estimation
   if (xyz->isOrganized())
   {
@@ -188,14 +196,36 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   extractNonNans.setInputCloud(xyz);
   extractNonNans.setIndices(inds_ptr);
   extractNonNans.filter(*xyzCleared);
+
+  // **************************
+  // * RSD estimation object. *
+  // **************************
+
+  // Object for storing the RSD descriptors for each point.
+	// pcl::PointCloud<pcl::PrincipalRadiiRSD>::Ptr descriptors(new pcl::PointCloud<pcl::PrincipalRadiiRSD>());
+
+	// pcl::RSDEstimation<pcl::PointXYZRGBL, pcl::Normal, pcl::PrincipalRadiiRSD> rsd;
+	// rsd.setInputCloud(xyzCleared);
+	// rsd.setInputNormals(nonNanNormals);
+
+  // pcl::search::KdTree<pcl::PointXYZRGBL>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGBL>);
+	// rsd.setSearchMethod(tree);
+	// // Search radius, to look for neighbors. Note: the value given here has to be
+	// // larger than the radius used to estimate the normals.
+	// rsd.setRadiusSearch(fpfh_param);
+	// // Plane radius. Any radius larger than this is considered infinite (a plane).
+	// rsd.setPlaneRadius(3);
+	// // Do we want to save the full distance-angle histograms?
+	// rsd.setSaveHistograms(false);
+	
+	// rsd.compute(*descriptors);
+  // ****************************************
+  // ****************************************
   
 
   // * ************ *
   // * compute FPFH *
   // * ************ *
-
-  // PointCloud<PointXYZRGBL>::Ptr fpfhReadyCloud(new PointCloud<PointXYZRGBL>);
-  // fromPCLPointCloud2(clearCloud, *fpfhReadyCloud);
 
   // Create the FPFH estimation class, and pass the input dataset+normals to it
 
@@ -241,6 +271,7 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   toPCLPointCloud2 (*nonNanNormals, normalsPCL2);
   toPCLPointCloud2 (*xyzCleared, clearCloud);
   toPCLPointCloud2 (*fpfhs, fpfhsCloud);
+  // toPCLPointCloud2 (*descriptors, fpfhsCloud);
   concatenateFields (clearCloud, normalsPCL2, interOutput);
   concatenateFields (interOutput, fpfhsCloud, output);
   
@@ -252,7 +283,8 @@ void saveCloud(const std::string &filename, const pcl::PCLPointCloud2 &output,
                const Eigen::Vector4f &translation, const Eigen::Quaternionf &orientation)
 {
   PCDWriter w;
-  w.writeBinaryCompressed(filename, output, translation, orientation);
+  // w.writeBinaryCompressed(filename, output, translation, orientation);
+  w.writeASCII(filename, output, translation, orientation);
 }
 
 int batchProcess(const std::vector<std::string> &pcd_files, std::string &output_dir, int k, double radius, int samples, double fpfh_param)
