@@ -226,6 +226,8 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   // * ************ *
   // * compute FPFH *
   // * ************ *
+  TicToc fpfh_tt;
+  fpfh_tt.tic();
 
   // Create the FPFH estimation class, and pass the input dataset+normals to it
 
@@ -252,7 +254,9 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   fpfh.compute (*fpfhs);
 
   // fpfhs->size () should have the same size as the input cloud->size ()*
-  print_highlight("After fpfh point cloud has ");
+  print_highlight("Computed random down sampling in ");
+  print_value("%g", fpfh_tt.toc());
+  print_info(" ms for ");
   print_value("%d", fpfhs->size());
   print_info(" points.\n");
   // ***************************************
@@ -266,23 +270,67 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   pcl::PCLPointCloud2 normalsPCL2;
   pcl::PCLPointCloud2 clearCloud;
   pcl::PCLPointCloud2 fpfhsCloud;
-  pcl::PCLPointCloud2 interOutput;
+  pcl::PCLPointCloud2 tempOutput;
+  pcl::PCLPointCloud2 preOutput;
 
   toPCLPointCloud2 (*nonNanNormals, normalsPCL2);
   toPCLPointCloud2 (*xyzCleared, clearCloud);
   toPCLPointCloud2 (*fpfhs, fpfhsCloud);
-  // toPCLPointCloud2 (*descriptors, fpfhsCloud);
-  concatenateFields (clearCloud, normalsPCL2, interOutput);
-  concatenateFields (interOutput, fpfhsCloud, output);
-  
-  // copyPointCloud(*cloudNormal, output);
+  concatenateFields (clearCloud, normalsPCL2, tempOutput);
+  concatenateFields (tempOutput, fpfhsCloud, preOutput);
+
+  // ****************************************
+  // * sample for an equal number of points *
+  // ****************************************
+  // Test the pcl::PCLPointCloud2 method
+  // Randomly sample sample points from cloud
+  TicToc ds_tt2;
+  ds_tt2.tic();
+
+  pcl::PCLPointCloud2::Ptr almostOutput (new PCLPointCloud2());
+  almostOutput->data = preOutput.data;
+  almostOutput->fields = preOutput.fields;
+  almostOutput->header = preOutput.header;
+  almostOutput->width = preOutput.width;
+  almostOutput->point_step = preOutput.point_step;
+  almostOutput->row_step = preOutput.row_step;
+  almostOutput->height = preOutput.height;
+  almostOutput->is_bigendian = preOutput.is_bigendian;
+  almostOutput->is_dense = preOutput.is_dense;
+
+  RandomSample<pcl::PCLPointCloud2> random_sample2;
+  random_sample2.setInputCloud(almostOutput);
+  random_sample2.setSample(samples-30000);
+
+  // Indices
+  pcl::Indices indices2;
+  random_sample2.filter(indices2);
+
+  pcl::PCLPointCloud2 lastTempOutput;
+
+
+  random_sample2.filter(lastTempOutput);
+
+  print_highlight("Computed random downsampling in ");
+  print_value("%g", ds_tt2.toc());
+  print_info(" ms for ");
+  print_value("%d", lastTempOutput.width);
+  print_info(" points. *************\n");
+
+  pcl::copyPointCloud(lastTempOutput, output);
+
+
+  // ****************************
+  // ****************************
 
 }
+
 
 void saveCloud(const std::string &filename, const pcl::PCLPointCloud2 &output,
                const Eigen::Vector4f &translation, const Eigen::Quaternionf &orientation)
 {
   PCDWriter w;
+  // TODO: CHANGE THIS WHEN WORKING WITH THE REAL DATASET. DO NOT WRITE FILES IN ASCII FORMAT!
   // w.writeBinaryCompressed(filename, output, translation, orientation);
   w.writeASCII(filename, output, translation, orientation);
 }
@@ -300,9 +348,41 @@ int batchProcess(const std::vector<std::string> &pcd_files, std::string &output_
     if (!loadCloud(pcd_files[i], *cloud, translation, rotation))
       continue;
 
+
+    // Load the labeled pcd file
+    Eigen::Vector4f translationL;
+    Eigen::Quaternionf rotationL;
+    pcl::PCLPointCloud2::Ptr cloudL(new pcl::PCLPointCloud2);
+    std::string secondFile = std::regex_replace(pcd_files[i], std::regex("pcd_rgb_data"), "pcd_label_data");
+    if (!loadCloud(secondFile, *cloudL, translationL, rotationL))
+      return (-1);
+
+    pcl::PointCloud<PointXYZI> cloudIntensity;
+    fromPCLPointCloud2(*cloudL, cloudIntensity);
+    pcl::PointCloud<pcl::PointXYZL> cloudLabel; //new pcl::PointCloud<pcl::PointXYZL>);
+    cloudLabel.width = cloudIntensity.width;
+    cloudLabel.height = cloudIntensity.height;
+    cloudLabel.resize(cloudLabel.width * cloudLabel.height);
+    cloudLabel.is_dense = true;
+
+
+    for (size_t i = 0; i < cloudIntensity.points.size(); i++)
+    {
+      cloudLabel.points[i].x = cloudIntensity.points[i].x;
+      cloudLabel.points[i].y = cloudIntensity.points[i].y;
+      cloudLabel.points[i].z = cloudIntensity.points[i].z;
+      cloudLabel.points[i].label = cloudIntensity.points[i].intensity;
+    }
+
+    toPCLPointCloud2 (cloudLabel, *cloudL);
+
+    pcl::PCLPointCloud2::Ptr completeCloud(new pcl::PCLPointCloud2);
+
+    concatenateFields(*cloud, *cloudL, *completeCloud);
+
     // Perform the feature estimation
     pcl::PCLPointCloud2 output;
-    compute(cloud, output, k, radius, samples, fpfh_param);
+    compute(completeCloud, output, k, radius, samples, fpfh_param);
 
     // Prepare output file name
     std::string filename = boost::filesystem::path(pcd_files[i]).filename().string();
