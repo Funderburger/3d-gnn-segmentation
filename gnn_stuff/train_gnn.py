@@ -25,6 +25,7 @@ from torch_geometric.data import Data, InMemoryDataset, extract_zip, DataLoader,
 import os
 import os.path as osp
 
+from pyntcloud import PyntCloud
 
 import scipy.io
 # mat = scipy.io.loadmat('SUNRGBDtoolbox/Metadata/seglistall.mat')
@@ -69,17 +70,20 @@ class MyOwnDataset(Dataset):
         self.data = self.raw_paths
         index = 1
         for pcd_name in tqdm(self.data, total=self.data.__len__()):
-            pcd_np = np.genfromtxt(pcd_name, delimiter=",")
+            # pcd_np = np.genfromtxt(pcd_name, delimiter=",")
+            pcd_object = PyntCloud.from_file(pcd_name)
+            pcd_np = np.array([pcd_object.points.x, pcd_object.points.y, pcd_object.points.z, pcd_object.points.label]).T
 
              # Get node features
-            node_feats = torch.tensor(np.concatenate([pcd_np[:,:3], pcd_np[:,3:6]/255],1)).cuda()
+            # node_feats = torch.tensor(np.concatenate([pcd_np[:,:3], pcd_np[:,3:6]/255],1)).cuda()
+            node_feats = torch.tensor(pcd_np[:,:3]).cuda()
             # Get edge features
             edge_feats = None
             # Get adjacency info
             torch_points = torch.tensor(pcd_np[:,:3]).cuda()
             edge_index = torch_geometric.nn.knn_graph(
                 torch_points,
-                6,
+                3,
                 None,
                 loop=False,
                 flow='source_to_target',
@@ -87,29 +91,30 @@ class MyOwnDataset(Dataset):
                 num_workers=1,
             )
             # Get labels info
-            label = self._get_labels(pcd_np[:,6])
+            # label = self._get_labels(pcd_np[:,6])
+            label = self._get_labels(pcd_np[:,3])
 
             # Create data object
             data = Data(x=node_feats, 
                         edge_index=edge_index,
                         edge_attr=edge_feats,
                         y=label,
-                        pos=torch.tensor(pcd_np[:,:3]).cuda()
+                        pos=torch_points
                         )
             
             # #########################
-            # # debug visualization
-            # import networkx as nx
-            # from torch_geometric.utils.convert import to_networkx
-            # datagraph = to_networkx(data)
+            # debug visualization
+            import networkx as nx
+            from torch_geometric.utils.convert import to_networkx
+            datagraph = to_networkx(data)
 
-            # node_labels = data.y[list(datagraph.nodes)].cpu().numpy()
+            node_labels = data.y[list(datagraph.nodes)].cpu().numpy()
 
-            # import matplotlib.pyplot as plt
-            # plt.figure(1,figsize=(14,12)) 
-            # nx.draw(datagraph, cmap=plt.get_cmap('Set1'),node_color = node_labels,node_size=75,linewidths=6)
+            import matplotlib.pyplot as plt
+            plt.figure(1,figsize=(14,12)) 
+            nx.draw(datagraph, cmap=plt.get_cmap('Set1'),node_color = node_labels,node_size=4,linewidths=3)
             # plt.show()
-            # plt.savefig("1024_graph.png")
+            plt.savefig("40k_graph.png")
             # ##########################
             torch.save(data, 
                         os.path.join(self.processed_dir, 
@@ -172,25 +177,27 @@ def main():
     # all parameters are for metric point clouds #
     # ########################################## #
     # pcd_name = 'SUNRGBDtoolbox/pcd_data_testing_2/raw/sunrgbd_xyzrgbi_1.txt'
-    pcd_name = 'SUNRGBDtoolbox/pcd_data_testing_2/raw/sunrgbd_xyzrgbi_7.txt'
+    # pcd_name = 'SUNRGBDtoolbox/pcd_data_testing_2/raw/sunrgbd_xyzrgbi_7.txt'
+    # pcd_object = PyntCloud.from_file("gnn_dataset/cpp_output_demo_dir/sunrgbd_pcd_1.pcd")
     
-    pcd_np = np.genfromtxt(pcd_name, delimiter=",")
+    # pcd_np = np.genfromtxt(pcd_name, delimiter=",")
 
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(pcd_np[:,:3])
-    pcd.colors = o3d.utility.Vector3dVector(pcd_np[:,3:6]/255)
+    # pcd = o3d.geometry.PointCloud()
+    # pcd.points = o3d.utility.Vector3dVector(pcd_np[:,:3])
+    # pcd.colors = o3d.utility.Vector3dVector(pcd_np[:,3:6]/255)
     
     
     # o3d.visualization.draw_geometries([pcd])
     # o3d.io.write_point_cloud("../../TestData/sync.ply", pcd)
 
-    vox_normal_pcd, fpfh_pcd = preprocess_point_cloud(pcd,sampling_rate=3,normal_radius=0.1)
+    # vox_normal_pcd, fpfh_pcd = preprocess_point_cloud(pcd,sampling_rate=3,normal_radius=0.1)
     # points = np.asarray(pcd.points)
     # torch_points = torch.tensor(points)
     # o3d.visualization.draw_geometries([vox_normal_pcd])
-    o3d.io.write_point_cloud("SUNRGBDtoolbox/pcd_data_testing/sampled_pcd/orig.pcd" , pcd)
+    # o3d.io.write_point_cloud("SUNRGBDtoolbox/pcd_data_testing/sampled_pcd/orig.pcd" , pcd)
 
-    dataset = MyOwnDataset(root='SUNRGBDtoolbox/pcd_data_testing_2/')
+    # dataset = MyOwnDataset(root='')
+    dataset = MyOwnDataset(root='gnn_dataset/pyg_data/')
 
     print(dataset[0].edge_index.t())
     print(dataset[0].x)
