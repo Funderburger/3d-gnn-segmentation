@@ -1,0 +1,181 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "don_segmento",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/catkin_don_ws/devel/lib/don_segmento/don_segmento",
+            "args": [
+                "some_ETH_pcds/G89.pcd",
+                "0.01",
+                "0.3",
+                "0.1",
+                "0.02"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "eu_extract",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/catkin_don_ws/devel/lib/don_segmento/eu_extract",
+            // "args": ["catkin_don_ws/0531_pcd.pcd", "0.01", "10", "0.4", "0.3"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "pfe",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/catkin_don_ws/devel/lib/don_segmento/pfe",
+            // "args": ["catkin_don_ws/0531_pcd.pcd", "0.01", "10", "0.4", "0.3"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "condi_clustering",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/catkin_don_ws/devel/lib/don_segmento/condi_clustering",
+            // "args": ["catkin_don_ws/0531_pcd.pcd", "0.01", "10", "0.4", "0.3"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "region_seg",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/catkin_don_ws/devel/lib/don_segmento/region_seg",
+            // "args": ["catkin_don_ws/0531_pcd.pcd", "0.01", "10", "0.4", "0.3"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "down_norm_fpfh",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/catkin_don_ws/devel/lib/don_segmento/down_norm_fpfh",
+            "args": ["catkin_don_ws/devel/lib/don_segmento/down_norm_fpfh", "SUNRGBDtoolbox/pcd_data_testing/cpp_down_n_fpfh/pcd_rgb_data/sunrgbd_pcd_1.pcd", "SUNRGBDtoolbox/pcd_data_testing/cpp_down_n_fpfh/fpfh_01_normal_50k_clouds/sunrgbd_rad_fpfh_01_normal_50k_points.pcd", "-radius", "0.1", "-k", "0", "-samples", "200000", "-fpfh_param", "2"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "batch_down_norm_fpfh",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/catkin_don_ws/devel/lib/don_segmento/down_norm_fpfh",
+            "args": ["catkin_don_ws/devel/lib/don_segmento/down_norm_fpfh", "-input_dir", "/home/marian/workspace/gnns_ws/don_ws/SUNRGBDtoolbox/pcd_data_testing/cpp_down_n_fpfh/pcd_rgb_data", "-output_dir", "/home/marian/workspace/gnns_ws/don_ws/gnn_dataset/cpp_output_demo_dir", "-radius", "0.1", "-k", "0", "-samples", "50000", "-fpfh_param", "0.5"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "g++ - Build and debug active file",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/${fileBasenameNoExtension}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "C/C++: g++ build active file",
+            "miDebuggerPath": "/usr/bin/gdb"
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"command": "cd",
+			"args": [
+                "catkin_don_ws",
+                "&&",
+                "catkin_make",
+				"-j4",
+				"-DCMAKE_BUILD_TYPE=Debug"
+			],
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"label": "ROS catkin_make: build"
+		}
+	]
+}
