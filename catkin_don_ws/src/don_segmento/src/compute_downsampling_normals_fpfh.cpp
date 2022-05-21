@@ -64,8 +64,40 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   // Convert data to PointCloud<T>
   // PointCloud<PointXYZ>::Ptr xyz (new PointCloud<PointXYZ>);
   // fromPCLPointCloud2 (*input, *xyz);
+  PointCloud<PointXYZRGBL>::Ptr xyz_in(new PointCloud<PointXYZRGBL>);
+  fromPCLPointCloud2(*input, *xyz_in);
+
+  // *****************************************
+  // * Remove Nans
+  // *****************************************
+
+  print_highlight("Initial number of points: ");
+  print_value("%d", xyz_in->size());
+
+  pcl::Indices nan_indices;
   PointCloud<PointXYZRGBL>::Ptr xyz(new PointCloud<PointXYZRGBL>);
-  fromPCLPointCloud2(*input, *xyz);
+  pcl::removeNaNFromPointCloud(*xyz_in, *xyz, nan_indices);
+  print_highlight("First... remove nans: ");
+  print_value("%d", xyz->size());
+  print_info(" points after NaN clean\n");
+
+  // pcl::ExtractIndices<pcl::PCLPointCloud2> nanExtracter;
+
+  // nanExtracter.setInputCloud(input);
+  // pcl::PointIndices::Ptr nan_indices_ptr (new pcl::PointIndices);
+  // nan_indices_ptr->indices = nan_indices;
+
+  // nanExtracter.setIndices(nan_indices_ptr);
+  // nanExtracter.filter(nan_free_input);
+  pcl::PCLPointCloud2 nan_free_input;
+  toPCLPointCloud2(*xyz, nan_free_input);
+
+  pcl::PCLPointCloud2::Ptr const_nan_free_input (new PCLPointCloud2());
+  *const_nan_free_input=nan_free_input;
+
+  // **********************************************************
+  // **********************************************************
+
 
   // ***********************************
   // * sample before normal estimation *
@@ -76,7 +108,7 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   ds_tt.tic();
 
   RandomSample<pcl::PCLPointCloud2> random_sample;
-  random_sample.setInputCloud(input);
+  random_sample.setInputCloud(const_nan_free_input);
   random_sample.setSample(samples);
 
   // Indices
@@ -300,7 +332,7 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
 
   RandomSample<pcl::PCLPointCloud2> random_sample2;
   random_sample2.setInputCloud(almostOutput);
-  random_sample2.setSample(samples-30000);
+  random_sample2.setSample(samples-10000); // just a magic number so that I can be sure that there will allways be the same number of points
 
   // Indices
   pcl::Indices indices2;
