@@ -62,14 +62,12 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
              int k, double radius, int samples, double fpfh_param)
 {
   // Convert data to PointCloud<T>
-  // PointCloud<PointXYZ>::Ptr xyz (new PointCloud<PointXYZ>);
-  // fromPCLPointCloud2 (*input, *xyz);
   PointCloud<PointXYZRGBL>::Ptr xyz_in(new PointCloud<PointXYZRGBL>);
   fromPCLPointCloud2(*input, *xyz_in);
 
-  // *****************************************
-  // * Remove Nans
-  // *****************************************
+  // ***************
+  // * Remove Nans *
+  // ***************
 
   print_highlight("Initial number of points: ");
   print_value("%d", xyz_in->size());
@@ -81,14 +79,6 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   print_value("%d", xyz->size());
   print_info(" points after NaN clean\n");
 
-  // pcl::ExtractIndices<pcl::PCLPointCloud2> nanExtracter;
-
-  // nanExtracter.setInputCloud(input);
-  // pcl::PointIndices::Ptr nan_indices_ptr (new pcl::PointIndices);
-  // nan_indices_ptr->indices = nan_indices;
-
-  // nanExtracter.setIndices(nan_indices_ptr);
-  // nanExtracter.filter(nan_free_input);
   pcl::PCLPointCloud2 nan_free_input;
   toPCLPointCloud2(*xyz, nan_free_input);
 
@@ -134,13 +124,6 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   tt.tic();
 
   PointCloud<Normal> normals;
-
-  // NormalEstimation<PointXYZRGBL, Normal> ne;
-  // ne.setInputCloud(xyz);
-  // ne.setSearchMethod(search::KdTree<PointXYZRGBL>::Ptr(new search::KdTree<PointXYZRGBL>));
-  // ne.setKSearch(k);
-  // // ne.setRadiusSearch(radius);
-  // ne.compute(normals);
 
   // Try our luck with organized integral image based normal estimation
   if (xyz->isOrganized())
@@ -204,8 +187,7 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   pcl::PointCloud<Normal>::Ptr normals_ptr(new pcl::PointCloud<Normal>);
   normals_ptr->points = normals.points;
   normals_ptr->header = normals.header;
-  // pcl::PCLPointCloud::Ptr outputCloud (new pcl::PCLPointCloud);
-  // std::vector<double> inds;
+
   pcl::Indices inds;
   PointCloud<Normal>::Ptr nonNanNormals (new pcl::PointCloud<Normal>);
   pcl::removeNaNNormalsFromPointCloud(*normals_ptr,*nonNanNormals,inds);
@@ -320,15 +302,7 @@ void compute(const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &ou
   ds_tt2.tic();
 
   pcl::PCLPointCloud2::Ptr almostOutput (new PCLPointCloud2());
-  almostOutput->data = preOutput.data;
-  almostOutput->fields = preOutput.fields;
-  almostOutput->header = preOutput.header;
-  almostOutput->width = preOutput.width;
-  almostOutput->point_step = preOutput.point_step;
-  almostOutput->row_step = preOutput.row_step;
-  almostOutput->height = preOutput.height;
-  almostOutput->is_bigendian = preOutput.is_bigendian;
-  almostOutput->is_dense = preOutput.is_dense;
+  *almostOutput = preOutput;
 
   RandomSample<pcl::PCLPointCloud2> random_sample2;
   random_sample2.setInputCloud(almostOutput);
