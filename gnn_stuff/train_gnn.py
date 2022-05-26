@@ -128,7 +128,7 @@ class MyOwnDataset(Dataset):
             torch_points = torch.tensor(pcd_np[:,:3]).cuda()
             edge_index = torch_geometric.nn.knn_graph(
                 torch_points,
-                6,
+                4,
                 None,
                 loop=False,
                 flow='source_to_target',
@@ -721,17 +721,12 @@ def main(rank, world_size):
                 best_test_acc = test_acc
                 torch.save(multi_net.state_dict(), "gnn_results/checkpoints/best_checkpoint_model")
 
-    # cleanup()
-    # net = get_best_model(model_params, validation_loader, device)
-
-
 if __name__=='__main__':
-    # mp.spawn(main())
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,3"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "29500"
-    world_size = 2
+    world_size = 3
     mp.spawn(main,
         args=(world_size,),
         nprocs=world_size,
