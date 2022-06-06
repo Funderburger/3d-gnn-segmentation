@@ -336,7 +336,7 @@ void saveCloud(const std::string &filename, const pcl::PCLPointCloud2 &output,
                const Eigen::Vector4f &translation, const Eigen::Quaternionf &orientation)
 {
   PCDWriter w;
-  // TODO: CHANGE THIS WHEN WORKING WITH THE REAL DATASET. DO NOT WRITE FILES IN ASCII FORMAT!
+  // TODO: CHANGE THIS WHEN WORKING WITH THE REAL DATASET. DO NOT WRITE FILES IN ASCII FORMAT! (but not when you try to use Pyntcloud to read the pcds in python)
   // w.writeBinaryCompressed(filename, output, translation, orientation);
   w.writeASCII(filename, output, translation, orientation);
 }
