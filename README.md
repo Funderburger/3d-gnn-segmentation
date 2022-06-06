@@ -9,8 +9,8 @@
 - Trimesh
 
 ## Catkin Environment Setup:
-- catkin_don_ws is your catkin_ws
-- just hit a catkin_make in there and you **should** be good to go
+- `catkin_don_ws` is your `catkin_ws`
+- just hit a `catkin_make` in there and you **should** be good to go
 - if you have any erros, well RIP! (though, you can open an issue, as I **_might_** be able to help you)
 
 ## How I created the data, you ask? (Ez!)
